@@ -1,14 +1,18 @@
-# HYQ-ALG-LIB：混合量子算法工具包
-HYQ-ALG-LIB 是一个轻量级 Python 工具包，用于构建与后端无关的量子线路并运行混合量子算法，例如 VQE、VarQITE、SA‑QITE、SS‑QITE 和 RITE。它提供：
+# HyQ：混合量子算法工具包 -- 使用教程
+由本人主导开发的华翊量子化学算法库 HyQ (曾用名：HYQ-ALG-LIB) 已在 PyPI 开源，网址：https://pypi.org/project/hyq/ 
+
+此Github仓库是基于HyQ量子化学库的一些使用示例与教程，包含编译功能使用、分子哈密顿量生成、VQE/VarQITE/SA-QITE等变分量子化学算法的原理及其求解器的调用方式 等。 用户可以在安装好 HyQ 算法库 之后，使用本仓库中的Jupyter Book文档学习库的使用与开发方法。
+
+HyQ 是一个轻量级 Python 工具包，用于构建与后端无关的量子线路并运行混合量子算法，例如 VQE、VarQITE、SA‑QITE、SS‑QITE 和 RITE。它提供：
 
 - 用于构建线路的统一 `QuantumCircuit` 抽象。
 - 可插拔的后端接口，支持两种执行模式：
     - 采样模式：返回测量计数，类似于硬件或基于采样的模拟器。
     - 状态向量模式：返回精确状态向量，适用于模拟器和可微分算法。
-- 针对 Qiskit、PennyLane 和 TensorCircuit 的后端实现。
-- 统一 Hamiltonian 格式表示 qubit Hamiltonian
-- 可选化学工具，使用 OpenFermion 和 Psi4 生成分子哈密顿量。
-- VQE、VarQITE、QITE 系列求解器，以及 classical reference、Trotter、QPE、QSE、VQD、classical shadow 等算法工具。
+- 针对 **Qiskit**、**PennyLane** 和 **TensorCircuit** 的后端实现。
+- 统一 **Hamiltonian** 格式表示 `qubit Hamiltonian`
+- 可选化学工具，使用 **OpenFermion** 和 **Psi4** 生成分子哈密顿量。
+- `VQE`、`VarQITE`、`QITE` 系列求解器，以及 `classical reference`、`Trotter`、`QPE`、`QSE`、`VQD`、`classical shadow` 等算法工具。
 
 
 ## 推荐的仓库结构
@@ -16,32 +20,8 @@ HYQ-ALG-LIB 是一个轻量级 Python 工具包，用于构建与后端无关的
 ```text
 .
 ├── algorithms/
-│   ├── __init__.py
-│   ├── classical_eigensolvers.py
-│   ├── phase_estimation.py
-│   ├── qse.py
-│   ├── quantum_chemistry.py
-│   ├── shadow.py
-│   ├── trotter.py
-│   └── vqd.py
 ├── ansatz/
-│   ├── __init__.py
-│   ├── base.py
-│   ├── HEA.py
-│   ├── ryrz.py
-│   ├── compact.py
-│   └── adapt.py
 ├── backends/
-│   ├── __init__.py
-│   ├── base.py
-│   ├── core.py
-│   ├── _matrix_simulator.py
-│   ├── Qiskit.py
-│   ├── Pennylane.py
-│   ├── Tensorcircuit.py
-│   ├── Cirq.py
-│   ├── Qulacs.py
-│   └── Qutip.py
 ├── chemistry/
 │   ├── __init__.py
 │   ├── hamiltonian.py
@@ -58,81 +38,187 @@ HYQ-ALG-LIB 是一个轻量级 Python 工具包，用于构建与后端无关的
 ├── examples/
 ├── tutorials/
 ├── requirements.txt
-├── requirements-qiskit.txt
-├── requirements-pennylane.txt
-├── requirements-tensorcircuit.txt
-├── requirements-optional-backends.txt
-├── requirements-chemistry.txt
-├── requirements-dev.txt
 └── README.md
 ```
 
 ## 安装
 
-首先创建并激活虚拟环境。
+```bash
+pip install hyq
+```
+
+默认可用 Qiskit 后端（线路构建、采样、QASM 等）。若需要可微分或其它模拟器，可加装 extras：
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate      # Linux / macOS
-# .venv\Scripts\activate       # Windows PowerShell
+pip install "hyq[tensorcircuit]"              # VQE / VarQITE 等可微分算法
+pip install "hyq[tensorcircuit,pennylane]"    # 常用组合
+pip install "hyq[all]"                        # 全部可选 Python 依赖（体积较大）
+```
 
+### 可选依赖（extras）
+
+| Extra | 用途 |
+|-------|------|
+| `pennylane` | PennyLane 后端 |
+| `tensorcircuit` | TensorCircuit 后端（推荐可微分流程） |
+| `optional-backends` | Cirq、Qulacs、QuTiP |
+| `chemistry` | OpenFermion、PySCF（分子哈密顿量，**默认 PySCF**） |
+| `psi4` | 仅 openfermionpsi4 桥接包；**须**已 `conda install psi4` |
+| `notebooks` | 运行 notebook 的辅助包 |
+| `dev` | pytest、black 等开发工具 |
+| `all` | 上述除 `dev` 外的组合 |
+
+### `pip install hyq` 和 `pip install "hyq[chemistry]"` 的区别
+
+| 安装命令 | 自动安装的内容 | 能否用 `hyq.chemistry` |
+|----------|----------------|-------------------------|
+| `pip install hyq` | NumPy、SciPy、PyTorch、Qiskit、qiskit-aer、pylatexenc | **不能**（缺 OpenFermion / PySCF） |
+| `pip install "hyq[chemistry]"` | 上述 **加上** openfermion、openfermionpyscf、pyscf（**不含** openfermionpsi4） | **可以**（走 **PySCF**） |
+| `pip install "hyq[chemistry,psi4]"` | 再加 openfermionpsi4；**还须** Conda 安装 `psi4` 程序 | 使用 Psi4 后端 |
+
+只做 VQE、QPE、线路编译等 **不需要** `[chemistry]`。运行 `examples/hamiltonian.ipynb` 或 `from hyq.chemistry import Hamiltonian` **需要** `[chemistry]`。
+
+
+### 方式一：仅 pip（推荐，无需 Psi4）
+
+Python 版本须为 **3.10 或 3.11**（与 `hyq` 一致）。
+
+```bash
 pip install -U pip
+pip install "hyq[chemistry]"
 ```
 
-安装核心依赖：
+验证：
+
 ```bash
-pip install -r requirements.txt
+python -c "import hyq; from hyq.chemistry import Hamiltonian; print('hyq', hyq.__version__)"
+python -c "from openfermionpyscf import run_pyscf; import pyscf; print('PySCF ok')"
 ```
 
-根据您的使用场景安装至少一个后端。
+最小用法：
 
-### TensorCircuit 后端：推荐用于可微分状态向量算法
+```python
+from hyq.chemistry import Hamiltonian
 
-```bash
-pip install -r requirements-tensorcircuit.txt
-export HYQ_BACKEND=tensorcircuit      # Linux / macOS
-# set HYQ_BACKEND=tensorcircuit       # Windows CMD
-# $env:HYQ_BACKEND="tensorcircuit"    # Windows PowerShell
+ham = Hamiltonian(
+    symbols=["H", "H"],
+    geometry=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]],
+    basis="sto-3g",
+)
+terms, n_qubits, n_electrons = ham.get_processed_hamiltonian(
+    n_active_electrons=2,
+    n_active_orbitals=2,
+    mapping="jw",
+)
 ```
 
-### Qiskit 后端：推荐用于线路转换、QASM、绘图和采样风格工作流
+### 方式二：使用 Psi4（可选，需 Conda）
+
+**Psi4 本体不在 PyPI**。默认 `hyq[chemistry]` **不会**安装 `openfermionpsi4`（避免仅有 Python 包、没有 `psi4` 命令时触发第三方库 bug）。需要 Psi4 时请：
 
 ```bash
-pip install -r requirements-qiskit.txt
-export HYQ_BACKEND=qiskit
+# 1. 用 Conda 安装 Psi4（示例）
+conda create -n hyq_chem python=3.11 psi4=1.10 pip -y
+conda activate hyq_chem
+
+# 2. 再装 hyq：化学 + Psi4 桥接
+pip install "hyq[chemistry,psi4]"
 ```
 
-### PennyLane 后端：推荐用于可微分算法原型开发
+验证：
 
 ```bash
-pip install -r requirements-pennylane.txt
-export HYQ_BACKEND=pennylane
+python -c "import psi4; print('psi4', psi4.__version__)"
+python -c "from openfermionpsi4 import run_psi4; print('openfermionpsi4 ok')"
 ```
 
-### 可选后端：Cirq / Qulacs / QuTiP
+可选环境变量（磁盘/权限异常时）：
 
 ```bash
-pip install -r requirements-optional-backends.txt
+export PSI4_SCRATCH=/tmp
+export TMPDIR=/tmp
 ```
 
-### 量子化学依赖
+运行时会使用当前目录下的 `.psi4_temp_data/` 存放临时文件。
+
+### 从源码开发（Conda 一键环境）
+
+克隆仓库后可用 `environment.yml`（已包含 Psi4 + PySCF + 全部 pip 依赖）：
 
 ```bash
-pip install -r requirements-chemistry.txt
+conda env create -f environment.yml
+conda activate hyq_alg_lib_env
+pip install -e .
 ```
 
-Psi4 在部分平台上不适合通过 pip 安装。如需使用 `chemistry/psi4_driver.py`，推荐使用 conda 安装 Psi4：
+详见仓库内 **`README_HYQ.md`**。
 
-```bash
-conda create -n psi4-env -c conda-forge psi4
-conda activate psi4-env
-python -c "import psi4; print(psi4.__version__)"
+### 常见报错
+
+若出现：
+
+```text
+ImportError: 需要安装 openfermionpyscf/pyscf，或安装 openfermionpsi4 并配置 Psi4。
 ```
 
-### 开发和 Notebook 环境
+表示当前环境 **未安装** `hyq[chemistry]`。请执行 `pip install "hyq[chemistry]"`。
+
+若出现 `UnboundLocalError: process`（来自 `openfermionpsi4`），说明曾安装 `openfermionpsi4` 但 **没有** `psi4` 可执行文件：请 `pip uninstall openfermionpsi4`，或改用 `26.1.4+` 的 `hyq`（默认不再拉取该包），或按上文安装 Conda 版 Psi4 后使用 `hyq[chemistry,psi4]`。
+
+## 导入方式
+
+安装后统一从 `hyq` 命名空间导入（与 `pip` 包名一致）：
+
+```python
+import hyq
+print(hyq.__version__)
+
+from hyq.backends import get_backend, available_backends, set_backend
+from hyq.backends.core import QuantumCircuit
+from hyq.backends.Tensorcircuit import TensorCircuitBackend
+from hyq.solvers import VQESolver
+from hyq.algorithms import exact_diagonalization, build_qpe_circuit
+from hyq.ansatz import HEAAnsatz, UCCSD
+from hyq.chemistry import Hamiltonian
+```
+
+## 选择默认后端
 
 ```bash
-pip install -r requirements-dev.txt
+export HYQ_BACKEND=tensorcircuit   # 或 qiskit、pennylane 等
+```
+
+```python
+from hyq.backends import available_backends, set_backend
+
+print(available_backends())
+backend = set_backend("tensorcircuit")
+```
+
+## 快速示例（VQE）
+
+```python
+import torch
+from hyq.backends.core import QuantumCircuit
+from hyq.backends.Tensorcircuit import TensorCircuitBackend
+from hyq.solvers import VQESolver
+
+backend = TensorCircuitBackend()
+solver = VQESolver(backend)
+
+def ansatz(params):
+    qc = QuantumCircuit(2)
+    qc.ry(0, params[0])
+    qc.cx(0, 1)
+    return qc
+
+hamiltonian = [(-1.0, "ZI"), (-1.0, "IZ"), (0.5, "XX")]
+init_params = torch.tensor([0.1], dtype=torch.float64)
+
+energy, params, history = solver.solve(
+    ansatz, init_params, hamiltonian, steps=100, lr=0.1
+)
+print(energy, params)
 ```
 
 ## Hamiltonian 标准格式
@@ -192,9 +278,11 @@ print(counts)
 
 ```python
 import torch
-from backends.core import QuantumCircuit
-from backends.Tensorcircuit import TensorCircuitBackend
-from solvers.vqe import VQESolver
+import hyq
+print(hyq.__version__)
+from hyq.backends.core import QuantumCircuit
+from hyq.backends.Tensorcircuit import TensorCircuitBackend
+from hyq.solvers.vqe import VQESolver
 
 backend = TensorCircuitBackend()
 solver = VQESolver(backend)
@@ -213,7 +301,7 @@ energy, params, history = solver.solve(ansatz, init_params, hamiltonian, steps=1
 ## 生成分子哈密顿量
 
 ```python
-from chemistry.hamiltonian import Hamiltonian
+from hyq.chemistry.hamiltonian import Hamiltonian
 
 symbols = ["H", "H"]
 geometry = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.74]]
@@ -225,144 +313,6 @@ terms, n_qubits, n_electrons = ham.get_processed_hamiltonian(
     mapping="jw",
     reverse_endian=False,
 )
-```
-
-## VQE 示例
-
-```python
-import torch
-from backends.core import QuantumCircuit
-from backends.Tensorcircuit import TensorCircuitBackend
-from solvers.vqe import VQESolver
-
-backend = TensorCircuitBackend()
-solver = VQESolver(backend)
-
-def ansatz(params):
-    qc = QuantumCircuit(2)
-    qc.ry(0, params[0])
-    qc.cx(0, 1)
-    return qc
-
-hamiltonian = [
-    (-1.0, "ZI"),
-    (-1.0, "IZ"),
-    (0.5, "XX"),
-]
-
-init_params = torch.tensor([0.1], dtype=torch.float64)
-energy, params, history = solver.solve(
-    ansatz,
-    init_params,
-    hamiltonian,
-    steps=100,
-    lr=0.1,
-)
-
-print(energy)
-print(params)
-```
-
-## Quantum Phase Estimation
-
-```python
-import numpy as np
-from backends.core import QuantumCircuit
-from algorithms.phase_estimation import build_qpe_circuit, phases_from_counts
-
-phi = 0.375
-unitary = QuantumCircuit(1)
-unitary.p(0, 2 * np.pi * phi)
-
-qpe = build_qpe_circuit(unitary, n_ancilla=3)
-print(qpe)
-
-# 后端采样后：
-# counts = backend.run_sampling(qpe, shots=2048, measure_qubits=[0, 1, 2])
-# result = phases_from_counts(counts, n_ancilla=3)
-```
-
-## QSE：Quantum Subspace Expansion
-
-```python
-import numpy as np
-from algorithms.qse import quantum_subspace_expansion
-
-reference_state = np.array([1.0, 0.0], dtype=np.complex128)
-hamiltonian = [(1.0, "Z"), (0.2, "X")]
-excitation_terms = [[(1.0, "X")]]
-
-result = quantum_subspace_expansion(
-    reference_state=reference_state,
-    hamiltonian=hamiltonian,
-    excitation_terms=excitation_terms,
-    n_qubits=1,
-)
-
-print(result.energies)
-print(result.kept_subspace_dimension)
-```
-
-## VQD：Variational Quantum Deflation 辅助工具
-
-```python
-import numpy as np
-from algorithms.vqd import deflated_eigensystem, vqd_objective_from_matrix
-
-H = np.diag([0.0, 1.0, 2.0]).astype(np.complex128)
-ground_state = np.array([1.0, 0.0, 0.0], dtype=np.complex128)
-
-vals, vecs = deflated_eigensystem(H, previous_states=[ground_state], betas=[5.0])
-print(vals)
-
-breakdown = vqd_objective_from_matrix(
-    H,
-    candidate_state=vecs[:, 0],
-    previous_states=[ground_state],
-    betas=[5.0],
-)
-print(breakdown)
-```
-
-## Classical Shadow
-
-```python
-from algorithms.shadow import ClassicalShadow
-
-shadow = ClassicalShadow(
-    backend=backend,
-    circuit=qc,
-    seed=123,
-)
-
-shadow.collect(5000)
-print(shadow.estimate_observable("XX"))
-
-hamiltonian = [(1.0, "II"), (0.5, "XX"), (-0.3, "ZZ")]
-print(shadow.estimate_hamiltonian(hamiltonian))
-```
-
-## 量子化学辅助函数
-
-```python
-import numpy as np
-from algorithms.quantum_chemistry import (
-    fci_reference_energy,
-    chemical_accuracy_error,
-    mp2_energy_from_integrals,
-    state_fidelity,
-    particle_number_expectation,
-    spin_z_expectation,
-)
-
-hamiltonian = [(1.0, "Z"), (0.2, "X")]
-ref = fci_reference_energy(hamiltonian, n_qubits=1)
-print(ref)
-print(chemical_accuracy_error(estimated_energy=-1.018, reference_energy=ref))
-
-state = np.array([0.0, 0.0, 0.0, 2.0], dtype=np.complex128)
-print(particle_number_expectation(state, n_qubits=2))
-print(spin_z_expectation(state, n_qubits=2))
 ```
 
 
